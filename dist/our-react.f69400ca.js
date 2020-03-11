@@ -118,6 +118,8 @@ parcelRequire = (function (modules, cache, entry, globalName) {
 
   return newRequire;
 })({"index.tsx":[function(require,module,exports) {
+function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
 var __assign = this && this.__assign || function () {
   __assign = Object.assign || function (t) {
     for (var s, i = 1, n = arguments.length; i < n; i++) {
@@ -144,8 +146,22 @@ var React = {
     }
 
     if (typeof tag == 'function') {
-      console.log("Function ", props);
-      return tag(props);
+      try {
+        return tag(props);
+      } catch (_a) {
+        var promise = _a.promise,
+            key_1 = _a.key;
+        promise.then(function (data) {
+          promiseCache.set(key_1, data);
+          rerender();
+        });
+        return {
+          tag: 'h1',
+          props: {
+            children: ['I AM LOADING']
+          }
+        };
+      }
     }
 
     var element = {
@@ -154,31 +170,110 @@ var React = {
         children: children
       })
     };
-    console.log(element);
     return element;
   }
 };
+var states = [];
+var stateCursor = 0;
+
+var useState = function useState(initialState) {
+  var FROZENCURSOR = stateCursor;
+  states[FROZENCURSOR] = states[FROZENCURSOR] || initialState;
+
+  var setState = function setState(newState) {
+    states[FROZENCURSOR] = newState;
+    rerender();
+  };
+
+  stateCursor++;
+  return [states[FROZENCURSOR], setState];
+};
+
+var promiseCache = new Map();
+
+var createResource = function createResource(func, key) {
+  if (promiseCache.has(key)) {
+    return promiseCache.get(key);
+  }
+
+  throw {
+    promise: func(),
+    key: key
+  };
+};
 
 var App = function App() {
+  var _a = useState("person"),
+      name = _a[0],
+      setName = _a[1];
+
+  var _b = useState(0),
+      count = _b[0],
+      setCount = _b[1];
+
+  var dogPhotoURL = createResource(function () {
+    return fetch('https://dog.ceo/api/breeds/image/random').then(function (r) {
+      return r.json();
+    }).then(function (payload) {
+      return payload.message;
+    });
+  }, 'dogPhoto');
   return React.createElement("div", {
     className: "react-2020",
     id: "app"
-  }, React.createElement("h1", null, "Hello, thambi!"), React.createElement("p", null, "Lorem ipsum dolor sit amet consectetur adipisicing elit. Ab facere necessitatibus vel nemo provident perspiciatis, pariatur repellat temporibus mollitia vero ea delectus voluptatum fugiat officiis laboriosam, deserunt, iure nam! Error."));
+  }, React.createElement("h1", null, "Hello, ", name, "!"), React.createElement("input", {
+    type: "text",
+    placeholder: "name",
+    value: name,
+    onchange: function onchange(e) {
+      return setName(e.target.value);
+    }
+  }), React.createElement("h2", null, "The count is ", count), React.createElement("img", {
+    src: dogPhotoURL,
+    alt: "DOG PHOTO"
+  }), React.createElement("button", {
+    onclick: function onclick() {
+      return setCount(count + 1);
+    }
+  }, "+"), React.createElement("button", {
+    onclick: function onclick() {
+      return setCount(count - 1);
+    }
+  }, "-"), React.createElement("p", null, "Lorem ipsum dolor sit amet consectetur adipisicing elit. Ab facere necessitatibus vel nemo provident perspiciatis, pariatur repellat temporibus mollitia vero ea delectus voluptatum fugiat officiis laboriosam, deserunt, iure nam! Error."));
 };
 /**Renderring Means Mapping the Virtual DOM element to Actual DOM Element */
 
 
-var render = function render(reactElement, container) {
-  var actualDomElement = document.createElement(reactElement.tag);
+var render = function render(reactElementOrStringOrNumber, container) {
+  if (['string', 'number'].includes(_typeof(reactElementOrStringOrNumber))) {
+    container.appendChild(document.createTextNode(String(reactElementOrStringOrNumber)));
+    return;
+  } // Creating the TAG Element
 
-  if (reactElement.props) {
-    Object.keys(reactElement.props).filter(function (p) {
-      console.log(p);
+
+  var actualDomElement = document.createElement(reactElementOrStringOrNumber.tag); // Assign Props from React Element to Actual DOM Element
+
+  if (reactElementOrStringOrNumber.props) {
+    Object.keys(reactElementOrStringOrNumber.props).filter(function (p) {
       return p !== 'children';
     }).forEach(function (p) {
-      return actualDomElement[p] = reactElement[p];
+      return actualDomElement[p] = reactElementOrStringOrNumber.props[p];
     });
   }
+
+  if (reactElementOrStringOrNumber.props.children) {
+    reactElementOrStringOrNumber.props.children.forEach(function (child) {
+      return render(child, actualDomElement);
+    });
+  }
+
+  container.appendChild(actualDomElement);
+};
+
+var rerender = function rerender() {
+  stateCursor = 0;
+  document.querySelector('#app').firstChild.remove();
+  render(React.createElement(App, null), document.querySelector('#app'));
 };
 
 render(React.createElement(App, null), document.querySelector('#app'));
@@ -210,7 +305,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "54183" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "56396" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
